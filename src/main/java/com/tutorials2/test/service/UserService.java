@@ -16,6 +16,16 @@ public class UserService {
     public  void saveUser(User user){
         userRepository.save(user);
     }
+    public String createUser(User user){
+        String email = user.getEmail();
+        System.out.println(email);
+        System.out.println(userRepository.existsByEmail(email));
+        if(userRepository.existsByEmail(email)){
+            return "User with email: " + email;
+        }
+        userRepository.save(user);
+        return "User created successfully";
+    }
     public User getUser(String id){
         return userRepository.findById(id).orElse(null);
     }
@@ -35,5 +45,9 @@ public class UserService {
             e.printStackTrace();
         }
         return false;
+    }
+    public List<User> findByEmail(String email){
+        List<User> user = userRepository.findByEmail(email);
+        return user;
     }
 }

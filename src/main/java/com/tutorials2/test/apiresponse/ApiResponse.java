@@ -1,12 +1,17 @@
 package com.tutorials2.test.apiresponse;
 
-public class ApiResponse {
+import lombok.Data;
+import java.util.List;
+
+@Data
+public class ApiResponse<T> {
     private String error;
-    private String data;
+    private List<T> data;
     private boolean success;
-    private String status;
 
-    public ApiResponse(String status, boolean success , String data, String error){
-
+    public ApiResponse(boolean success, List<T> data, String error){
+        this.success = success;
+        this.data = data;
+        this.error = error;
     }
 }
