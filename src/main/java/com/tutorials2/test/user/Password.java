@@ -6,10 +6,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 @Service
 public class Password {
+    protected BCryptPasswordEncoder passwordEncoder;
 
-    @Autowired
-    private BCryptPasswordEncoder passwordEncoder;
-
+    public Password(){
+        this.passwordEncoder = new BCryptPasswordEncoder();
+    }
     public boolean validate(String password){
         int len = password.length();
         if(len < 9 || len > 30){
@@ -32,7 +33,7 @@ public class Password {
     }
 
     public String hashPassword(String password){
-        try {
+        try{
             return passwordEncoder.encode(password);
         }catch (Exception e){
             throw e;

@@ -16,15 +16,13 @@ public class UserService {
     public  void saveUser(User user){
         userRepository.save(user);
     }
-    public String createUser(User user){
+    public boolean createUser(User user){
         String email = user.getEmail();
-        System.out.println(email);
-        System.out.println(userRepository.existsByEmail(email));
         if(userRepository.existsByEmail(email)){
-            return "User with email: " + email;
+            return false;
         }
         userRepository.save(user);
-        return "User created successfully";
+        return true;
     }
     public User getUser(String id){
         return userRepository.findById(id).orElse(null);

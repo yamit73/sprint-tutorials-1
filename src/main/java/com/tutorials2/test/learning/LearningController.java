@@ -1,10 +1,11 @@
 package com.tutorials2.test.learning;
 
 import com.tutorials2.test.apiresponse.ApiResponse;
+import com.tutorials2.test.models.Gender;
 import com.tutorials2.test.models.User;
 import com.tutorials2.test.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.web.format.DateTimeFormatters;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -12,8 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Collections;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import com.tutorials2.test.user.Password;
@@ -27,34 +27,58 @@ public class LearningController {
     @Autowired
     UserService userService;
 
+    @Value("${jwt.secret}")
+    private String secretKey;
+
     @GetMapping("/test")
-    public String testAction(@RequestParam Map<String,String> params){
+    public ResponseEntity<ApiResponse<Boolean>> testAction(@RequestParam Map<String,Object> params){
+        System.out.println(secretKey);
+        ApiResponse<Boolean> apiResponse = new ApiResponse<>(false, null, null);
         if(!params.containsKey("email") || !params.containsKey("password") || !params.containsKey("full_name")){
-            return "email, password, and full_name are required!!";
+            apiResponse.setError("email, password, and full_name are required!!");
+            return new ResponseEntity<>(apiResponse, HttpStatus.BAD_REQUEST);
         }
-        if(!passObj.validate(params.get("password"))){
-            return "password is invalid!!";
+        String password = (String)params.get("password");
+        if(!passObj.validate(password)){
+            apiResponse.setError("password is invalid!!");
+            return new ResponseEntity<>(apiResponse, HttpStatus.BAD_REQUEST);
         }
-        LocalDateTime now = LocalDateTime.now();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd : HH-mm-ss");
-        String timeStamp = now.format(formatter);
-
-        User user = new User();
-        user.setEmail(params.get("email"));
-        user.setPassword(params.get("password"));
-        user.setFull_name(params.get("full_name"));
-        user.setCreated_at(timeStamp);
-
-        String res = userService.createUser(user);
-        return res;
+        User user = this.prepareUserData(params);
+        boolean res = userService.createUser(user);
+        if(res) {
+            List<Boolean> resp = new ArrayList<>();
+            resp.add(res);
+            apiResponse.setSuccess(true);
+            apiResponse.setData(resp);
+        }else{
+            apiResponse.setError("User already present.Please login!!");
+        }
+        return new ResponseEntity<>(apiResponse, HttpStatus.OK);
     }
 
     @PostMapping("login")
     public ResponseEntity<ApiResponse<User>> login(@RequestBody Map<String, String> params){
         List<User> res = userService.findByEmail(params.get("email"));
+        ApiResponse<User> apiResponse = new ApiResponse<>(false, null, null);
         if(res.isEmpty()){
-            return new ResponseEntity<>(new ApiResponse<>(false, null, "User not found. Kindly signup first!!"), HttpStatus.BAD_REQUEST);
+            apiResponse.setError("User not found. Kindly signup first!!");
+            return new ResponseEntity<>(apiResponse, HttpStatus.BAD_REQUEST);
         }
-        return new ResponseEntity<>(new ApiResponse<>(true, res, null), HttpStatus.OK);
+        apiResponse.setSuccess(true);
+        apiResponse.setData(res);
+        return new ResponseEntity<>(apiResponse, HttpStatus.OK);
+    }
+
+    private User prepareUserData(Map<String,Object> params){
+        String password = (String)params.get("password");
+        String hashedPassword = passObj.hashPassword(password);
+        String timeStamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd : HH-mm-ss"));
+        User user = new User((String)params.get("email"), hashedPassword, (String)params.get("full_name"), timeStamp);
+        if(params.containsKey("gender")){
+            String gender = (String)params.get("gender");
+            Gender genderEnum = Gender.valueOf(gender);
+            user.setGender(genderEnum);
+        }
+        return user;
     }
 }
