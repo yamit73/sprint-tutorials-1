@@ -6,17 +6,18 @@ import com.tutorials2.test.models.User;
 import com.tutorials2.test.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import com.tutorials2.test.user.Password;
+import org.springframework.web.client.RestTemplate;
 
 @Service
 @RestController
@@ -69,6 +70,43 @@ public class LearningController {
         return new ResponseEntity<>(apiResponse, HttpStatus.OK);
     }
 
+    @GetMapping("/test/url")
+    public ResponseEntity<ApiResponse<String>> apiTest(@RequestParam Map<String, String> params){
+        try {
+            String url = "https://dummy.restapiexample.com/api/v1/employees";
+            RestTemplate restTemplate = new RestTemplate();
+            String response = restTemplate.getForObject(url, String.class);
+            List<String> list = new ArrayList<>();
+            list.add(response);
+            return new ResponseEntity<>(new ApiResponse<>(true, list, null), HttpStatus.OK);
+        }catch (Exception e){
+            return new ResponseEntity<>(new ApiResponse<>(false, null, e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @PostMapping(value = "/test/api/post")
+    public ResponseEntity<ApiResponse<String>> apiTestPost(@RequestBody Map<String, String> reqBody){
+        String url = "https://dummy.restapiexample.com/api/v1/create";
+
+        RestTemplate restTemplate = new RestTemplate();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+
+        HttpEntity<Map<String, String>> httpEntity = new HttpEntity<>(reqBody, headers);
+        try{
+            ResponseEntity<String> responseEntity = restTemplate.exchange(url,HttpMethod.POST,httpEntity, String.class);
+            if(responseEntity.getStatusCode() == HttpStatus.CREATED){
+                return new ResponseEntity<>(new ApiResponse<>(true, List.of(responseEntity.getBody()), null),HttpStatus.OK);
+            }else{
+                return  new ResponseEntity<>(new ApiResponse<>(false, null, "Record not created!!"), responseEntity.getStatusCode());
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+            return new ResponseEntity<>(new ApiResponse<>(false, null, e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
     private User prepareUserData(Map<String,Object> params){
         String password = (String)params.get("password");
         String hashedPassword = passObj.hashPassword(password);
